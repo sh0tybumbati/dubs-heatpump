@@ -118,9 +118,6 @@
 				<CoolingRate>250</CoolingRate>
 				<Capacity>120</Capacity>
 			</li>
-			<li Class="CompProperties_TempControl">
-				<energyPerSecond>21</energyPerSecond>
-			</li>
 			<li Class="DubsBadHygiene.CompProperties_Pipe">
 				<mode>HeatPump</mode>
 			</li>
