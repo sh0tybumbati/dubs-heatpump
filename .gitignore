@@ -1,0 +1,71 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET / C#
+*.dll
+*.exe
+*.pdb
+*.cache
+*.config
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# BUT keep the compiled assembly that goes in the mod
+!Assemblies/*.dll
+
+# RimWorld specific
+Source/.vs/
+Source/*/bin/
+Source/*/obj/
+Source/*/.vs/
+*.csproj.user
+
+# Rider
+.idea/
+*.sln.iml
+
+# Mac
+.DS_Store
+*.DS_Store
+
+# Backup files
+*.bak
+*~
+*.swp
+*.swo
+
+# Temp files
+Temp/
+temp/
+tmp/
+*.tmp
+
+# Preview placeholder
+About/Preview.txt
