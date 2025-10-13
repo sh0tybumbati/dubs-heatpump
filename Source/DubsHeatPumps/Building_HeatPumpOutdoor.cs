@@ -24,21 +24,43 @@ namespace DubsHeatPumps
             {
                 // Check if any connected indoor units are in heating mode
                 bool anyHeating = false;
+                int heatingUnits = 0;
+                int coolingUnits = 0;
+
                 foreach (var connectedUnit in compAirconBaseUnit.ConnectedUnits)
                 {
                     if (connectedUnit is Building_HeatPumpIndoor heatPump)
                     {
                         var heatPumpComp = heatPump.GetComp<CompHeatPump>();
-                        if (heatPumpComp != null && heatPumpComp.IsHeating)
+                        if (heatPumpComp != null)
                         {
-                            anyHeating = true;
-                            break;
+                            if (heatPumpComp.IsHeating)
+                            {
+                                anyHeating = true;
+                                heatingUnits++;
+                            }
+                            else
+                            {
+                                coolingUnits++;
+                            }
                         }
                     }
                 }
 
-                string mode = anyHeating ? "Heating mode (absorbing exterior heat)" : "Cooling mode (exhausting heat)";
-                baseString += "\n" + mode;
+                if (heatingUnits > 0 || coolingUnits > 0)
+                {
+                    string mode = anyHeating ? "Heating mode" : "Cooling mode";
+                    string operation = anyHeating ? "absorbing exterior heat" : "exhausting heat";
+                    baseString += $"\n{mode} ({operation})";
+                    baseString += $"\nConnected units: {heatingUnits + coolingUnits} ({(anyHeating ? heatingUnits + " heating" : coolingUnits + " cooling")})";
+                }
+
+                // Show outdoor temperature
+                if (Map != null)
+                {
+                    float outdoorTemp = Map.mapTemperature.OutdoorTemp;
+                    baseString += $"\nOutdoor: {outdoorTemp.ToStringTemperature()}";
+                }
             }
 
             return baseString;

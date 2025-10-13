@@ -4,7 +4,24 @@
 	<ResearchProjectDef>
 		<defName>HeatPumps</defName>
 		<label>heat pumps</label>
-		<description>Build advanced climate control systems that can both heat and cool using reversible refrigeration cycles. Heat pumps are more complex than standard air conditioners but provide year-round climate control with a single system.</description>
+		<description>Build advanced climate control systems that can both heat and cool using reversible refrigeration cycles. More efficient than separate heating and cooling systems.
+
+Unlocks:
+• Heat Pump Outdoor Unit - Reversible refrigeration compressor (250W, 120 capacity)
+• Heat Pump Indoor Unit - Auto-switching temperature control (25W per unit)
+
+Features:
+• Automatic mode switching at ±2°C from target temperature
+• Single outdoor unit supports multiple indoor units
+• All units on same network operate in same mode (heating or cooling)
+• More efficient than running separate heater + AC systems
+
+Limitations:
+• Heating disabled when outdoor temperature drops below -25°C (-13°F)
+• Requires dedicated heat pump duct network (not compatible with regular AC ducts)
+• Cannot mix heating and cooling modes on same outdoor unit
+
+Ideal for: Year-round climate control with lower power consumption than traditional systems.</description>
 		<baseCost>3000</baseCost>
 		<techLevel>Industrial</techLevel>
 		<prerequisites>

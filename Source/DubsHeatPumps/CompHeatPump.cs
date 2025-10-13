@@ -1,11 +1,17 @@
 using RimWorld;
 using Verse;
 using DubsBadHygiene;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace DubsHeatPumps
 {
+    [StaticConstructorOnStartup]
     public class CompHeatPump : ThingComp
     {
+        // Use vanilla heater icon for heating, and cooling icon (or designator cancel) for cooling
+        private static readonly Texture2D HeatingIcon = ContentFinder<Texture2D>.Get("UI/Designators/Heat", false) ?? BaseContent.BadTex;
+        private static readonly Texture2D CoolingIcon = ContentFinder<Texture2D>.Get("UI/Designators/Cool", false) ?? BaseContent.BadTex;
         private CompProperties_HeatPump Props => (CompProperties_HeatPump)props;
 
         private CompTempControl tempControl;
@@ -106,16 +112,85 @@ namespace DubsHeatPumps
             if (tempControl == null)
                 return null;
 
-            string mode = isHeating ? "Heating" : "Cooling";
-            string result = $"Heat Pump Mode: {mode}";
+            string result = "";
 
-            // Show warning if trying to heat but outdoor temp is too cold
-            if (isHeating && !CanHeat)
+            // Current mode
+            string mode = isHeating ? "Heating" : "Cooling";
+            result += $"Mode: {mode}\n";
+
+            // Room and target temperatures
+            Room room = parent.GetRoom(RegionType.Set_Passable);
+            if (room != null)
             {
-                result += "\nWarning: Outdoor temperature too low for heating";
+                float roomTemp = room.Temperature;
+                float targetTemp = tempControl.targetTemperature;
+                result += $"Room: {roomTemp.ToStringTemperature()} / Target: {targetTemp.ToStringTemperature()}\n";
             }
 
-            return result;
+            // Outdoor temperature
+            if (parent?.Map != null)
+            {
+                float outdoorTemp = parent.Map.mapTemperature.OutdoorTemp;
+                result += $"Outdoor: {outdoorTemp.ToStringTemperature()}\n";
+
+                // Temperature differential
+                if (room != null)
+                {
+                    float differential = isHeating
+                        ? room.Temperature - outdoorTemp
+                        : outdoorTemp - room.Temperature;
+                    result += $"Temp differential: {differential.ToStringTemperatureOffset()}\n";
+                }
+
+                // Show warning if trying to heat but outdoor temp is too cold
+                if (isHeating && !CanHeat)
+                {
+                    result += "WARNING: Too cold outside for heating\n";
+                }
+                else if (room != null && room.Temperature < (tempControl.targetTemperature - Props.modeThreshold) && !CanHeat)
+                {
+                    result += $"Heating unavailable below {Props.minHeatingOutdoorTemp.ToStringTemperature()} outdoor";
+                }
+            }
+
+            return result.TrimEnd('\n');
+        }
+
+        public override IEnumerable<Gizmo> CompGetGizmosExtra()
+        {
+            foreach (Gizmo gizmo in base.CompGetGizmosExtra())
+            {
+                yield return gizmo;
+            }
+
+            // Add mode indicator gizmo
+            Command_Action modeIndicator = new Command_Action
+            {
+                defaultLabel = isHeating ? "Mode: Heating" : "Mode: Cooling",
+                defaultDesc = isHeating
+                    ? "Heat pump is currently heating the room. Outdoor unit is absorbing heat from outside air."
+                    : "Heat pump is currently cooling the room. Outdoor unit is exhausting heat outside.",
+                icon = isHeating ? HeatingIcon : CoolingIcon,
+                action = delegate { } // Read-only indicator
+            };
+
+            // Add visual indicator by changing icon color
+            if (isHeating)
+            {
+                modeIndicator.defaultIconColor = new Color(1f, 0.5f, 0.2f); // Orange for heating
+            }
+            else
+            {
+                modeIndicator.defaultIconColor = new Color(0.4f, 0.7f, 1f); // Blue for cooling
+            }
+
+            // Show disabled if heating but can't heat
+            if (isHeating && !CanHeat)
+            {
+                modeIndicator.Disable("Outdoor temperature too low for heating");
+            }
+
+            yield return modeIndicator;
         }
     }
 }
