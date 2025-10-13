@@ -69,3 +69,7 @@ tmp/
 
 # Preview placeholder
 About/Preview.txt
+
+# Reference assemblies (copyrighted, don't commit)
+lib/*.dll
+!lib/README.md
