@@ -2,7 +2,7 @@
 <Defs>
 
 	<!-- Heat Pump Outdoor Unit -->
-	<ThingDef ParentName="BasedHeating">
+	<ThingDef ParentName="BuildingBase">
 		<defName>HeatPumpOutdoorUnit</defName>
 		<label>heat pump outdoor unit</label>
 		<description>An outdoor unit for a heat pump system. Must be connected to indoor units via dedicated heat pump ducts (separate from regular air conditioning ducts). Can provide both heating and cooling depending on indoor unit operation. More efficient than separate heating and cooling systems. Note: All indoor units on the same network will operate in the same mode (heating or cooling).</description>
@@ -66,7 +66,7 @@
 	</ThingDef>
 
 	<!-- Heat Pump Indoor Unit -->
-	<ThingDef ParentName="BaseAircon">
+	<ThingDef ParentName="BuildingBase">
 		<defName>HeatPumpIndoorUnit</defName>
 		<label>heat pump indoor unit</label>
 		<description>An indoor unit for a heat pump system. Automatically switches between heating and cooling modes based on the target temperature and current room temperature. Requires connection to a heat pump outdoor unit via dedicated heat pump ducts (not compatible with regular AC ducts). When cooling, the outdoor unit exhausts heat. When heating, the outdoor unit absorbs heat from outside air. Heating disabled when outdoor temperature drops below -25°C (-13°F).</description>
