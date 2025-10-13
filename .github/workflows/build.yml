@@ -91,15 +91,15 @@ jobs:
         EOFSTUB
 
         # Compile the stub assembly
-        dotnet new classlib -n DubsBadHygiene -o DubsBadHygiene_Temp -f net472
-        rm DubsBadHygiene_Temp/Class1.cs
-        cp DubsBadHygiene_Stub.cs DubsBadHygiene_Temp/
+        mkdir -p DubsBadHygiene_Temp
+        mv DubsBadHygiene_Stub.cs DubsBadHygiene_Temp/
 
-        # Add RimWorld references to stub project
+        # Create project file with RimWorld references
         cat > DubsBadHygiene_Temp/DubsBadHygiene.csproj <<'EOFCSPROJ'
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
             <TargetFramework>net472</TargetFramework>
+            <AssemblyName>DubsBadHygiene</AssemblyName>
           </PropertyGroup>
           <ItemGroup>
             <PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4104" />
@@ -111,7 +111,7 @@ jobs:
         dotnet build -c Release
         cp bin/Release/net472/DubsBadHygiene.dll ../lib/
         cd ..
-        rm -rf DubsBadHygiene_Temp DubsBadHygiene_Stub.cs
+        rm -rf DubsBadHygiene_Temp
 
     - name: Convert project to SDK-style with RimRef
       run: |
