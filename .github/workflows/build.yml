@@ -44,7 +44,7 @@ jobs:
 
                 public override void SpawnSetup(Map map, bool respawningAfterLoad) { }
                 public override void TickRare() { }
-                public virtual string GetInspectString() { return ""; }
+                public override string GetInspectString() { return ""; }
             }
 
             public class CompAirconBaseUnit : ThingComp
