@@ -34,9 +34,6 @@ jobs:
         # Backup original files
         cp DubsHeatPumps.csproj DubsHeatPumps.csproj.bak
 
-        # Get list of C# source files
-        SOURCES=$(find . -name "*.cs" -type f | sed 's|^\./||' | awk '{printf "    <Compile Include=\"%s\" />\n", $0}')
-
         # Create SDK-style .csproj with RimRef
         cat > DubsHeatPumps.csproj <<'EOFPROJECT'
         <Project Sdk="Microsoft.NET.Sdk">
@@ -59,12 +56,6 @@ jobs:
               <HintPath>../../lib/DubsBadHygiene.dll</HintPath>
               <Private>False</Private>
             </Reference>
-          </ItemGroup>
-
-          <ItemGroup>
-        EOFPROJECT
-        echo "$SOURCES" >> DubsHeatPumps.csproj
-        cat >> DubsHeatPumps.csproj <<'EOFPROJECT'
           </ItemGroup>
         </Project>
         EOFPROJECT
