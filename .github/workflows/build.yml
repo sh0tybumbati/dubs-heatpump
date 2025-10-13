@@ -77,16 +77,6 @@ jobs:
                 Oxygen,
                 Hydrogen
             }
-
-            public class CompPowerTrader : ThingComp
-            {
-                public bool PowerOn { get; set; }
-            }
-
-            public class CompFlickable : ThingComp
-            {
-                public bool SwitchIsOn { get; set; }
-            }
         }
         EOFSTUB
 
