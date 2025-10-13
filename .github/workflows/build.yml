@@ -20,12 +20,98 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Create lib directory and download dependencies
+    - name: Create stub DubsBadHygiene assembly
       run: |
         mkdir -p lib
 
-        # Download DubsBadHygiene from GitHub releases
-        wget -q https://github.com/Dubwise56/Dubs-Bad-Hygiene/releases/latest/download/DubsBadHygiene.dll -O lib/DubsBadHygiene.dll || echo "Warning: DubsBadHygiene download failed"
+        # Create stub types for DubsBadHygiene that this mod depends on
+        cat > DubsBadHygiene_Stub.cs <<'EOFSTUB'
+        using System.Collections.Generic;
+        using Verse;
+        using RimWorld;
+
+        namespace DubsBadHygiene
+        {
+            public class Building_AirconUnit : Building
+            {
+                public override void SpawnSetup(Map map, bool respawningAfterLoad) { }
+                public override void TickRare() { }
+            }
+
+            public class Building_AirconOutdoorUnit : Building
+            {
+                public CompAirconBaseUnit compAirconBaseUnit;
+
+                public override void SpawnSetup(Map map, bool respawningAfterLoad) { }
+                public override void TickRare() { }
+                public virtual string GetInspectString() { return ""; }
+            }
+
+            public class CompAirconBaseUnit : ThingComp
+            {
+                public List<Thing> ConnectedUnits = new List<Thing>();
+            }
+
+            public class CompAirconUnit : ThingComp
+            {
+            }
+
+            public class CompPipe : ThingComp
+            {
+                public PipeNet pipeNet;
+            }
+
+            public class PipeNet
+            {
+                public PipeType pipeType;
+                public float AvailableWater;
+
+                public void DrawWater(float amount) { }
+                public float AddHydrogen(float amount) { return 0f; }
+                public float AddOxygen(float amount) { return 0f; }
+            }
+
+            public enum PipeType
+            {
+                Water,
+                Oxygen,
+                Hydrogen
+            }
+
+            public class CompPowerTrader : ThingComp
+            {
+                public bool PowerOn { get; set; }
+            }
+
+            public class CompFlickable : ThingComp
+            {
+                public bool SwitchIsOn { get; set; }
+            }
+        }
+        EOFSTUB
+
+        # Compile the stub assembly
+        dotnet new classlib -n DubsBadHygiene -o DubsBadHygiene_Temp -f net472
+        rm DubsBadHygiene_Temp/Class1.cs
+        cp DubsBadHygiene_Stub.cs DubsBadHygiene_Temp/
+
+        # Add RimWorld references to stub project
+        cat > DubsBadHygiene_Temp/DubsBadHygiene.csproj <<'EOFCSPROJ'
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net472</TargetFramework>
+          </PropertyGroup>
+          <ItemGroup>
+            <PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4104" />
+          </ItemGroup>
+        </Project>
+        EOFCSPROJ
+
+        cd DubsBadHygiene_Temp
+        dotnet build -c Release
+        cp bin/Release/net472/DubsBadHygiene.dll ../lib/
+        cd ..
+        rm -rf DubsBadHygiene_Temp DubsBadHygiene_Stub.cs
 
     - name: Convert project to SDK-style with RimRef
       run: |
