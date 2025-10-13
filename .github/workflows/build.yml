@@ -20,135 +20,64 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Create lib directory
-      run: mkdir -p lib
-
-    - name: Download RimWorld assemblies
+    - name: Create lib directory and download dependencies
       run: |
-        # Download RimWorld publicized assemblies from a public source
-        # These are commonly available from the RimWorld modding community
-        wget -q https://github.com/rwmt/Multiplayer/raw/master/Assemblies/0Harmony.dll -O lib/0Harmony.dll || echo "Harmony download failed"
+        mkdir -p lib
 
-    - name: Create reference assemblies directory
-      run: mkdir -p Source/DubsHeatPumps/lib
+        # Download DubsBadHygiene from GitHub releases
+        wget -q https://github.com/Dubwise56/Dubs-Bad-Hygiene/releases/latest/download/DubsBadHygiene.dll -O lib/DubsBadHygiene.dll || echo "Warning: DubsBadHygiene download failed"
 
-    - name: Create stub assemblies for build
-      run: |
-        # Create minimal stub assemblies for compilation
-        # These won't run but will allow the build to complete
-        cat > stub.cs << 'EOF'
-        namespace Verse {
-          public class ThingComp {
-            public Verse.Thing parent;
-            public virtual void PostSpawnSetup(bool respawningAfterLoad) {}
-            public virtual void CompTick() {}
-            public virtual void PostExposeData() {}
-            public virtual string CompInspectStringExtra() { return null; }
-          }
-          public class CompProperties { public System.Type compClass; }
-          public class Thing {
-            public Verse.Map Map;
-            public Verse.Room GetRoom(RegionType type) { return null; }
-            public T GetComp<T>() where T : ThingComp { return null; }
-            public bool IsHashIntervalTick(int interval) { return false; }
-          }
-          public class Map { public MapTemperature mapTemperature; }
-          public class MapTemperature { public float OutdoorTemp; }
-          public class Room { public float Temperature; }
-          public enum RegionType { Set_Passable }
-          public class Scribe_Values { public static void Look<T>(ref T value, string label, T defaultValue = default(T)) {} }
-          public class GenTemperature { public static void PushHeat(Thing thing, float energy) {} }
-          public class Building : Thing {}
-        }
-        namespace RimWorld {
-          public class CompTempControl : Verse.ThingComp {
-            public CompProperties_TempControl Props;
-            public float targetTemperature;
-          }
-          public class CompProperties_TempControl : Verse.CompProperties {
-            public float energyPerSecond;
-          }
-        }
-        namespace DubsBadHygiene {
-          public class CompProperties_Pipe : Verse.CompProperties { public string mode; }
-          public class CompProperties_AirconBaseUnit : Verse.CompProperties {
-            public float BaseCapacity;
-            public int PowerModes;
-          }
-          public class CompProperties_CompAirconUnit : Verse.CompProperties {
-            public float energyPerSecond;
-            public float CoolingRate;
-            public float Capacity;
-          }
-          public class CompAirconUnit : Verse.ThingComp {}
-          public class Building_AirconUnit : Verse.Building {}
-          public class Building_AirconOutdoorUnit : Verse.Building {
-            public CompAirconBaseUnit compAirconBaseUnit;
-            public System.Collections.Generic.List<Verse.Thing> ConnectedUnits;
-            public virtual string GetInspectString() { return ""; }
-          }
-          public class CompAirconBaseUnit : Verse.ThingComp {
-            public System.Collections.Generic.List<Verse.Thing> ConnectedUnits;
-          }
-        }
-        EOF
-
-        # Compile stub assembly
-        csc -target:library -out:lib/Assembly-CSharp.dll stub.cs 2>/dev/null || dotnet build stub.cs -o lib/ 2>/dev/null || echo "Using nuget packages instead"
-
-    - name: Update project references
+    - name: Convert project to SDK-style with RimRef
       run: |
         cd Source/DubsHeatPumps
 
-        # Create a simpler .csproj that uses NuGet packages where possible
+        # Backup original files
+        cp DubsHeatPumps.csproj DubsHeatPumps.csproj.bak
+
+        # Get list of C# source files
+        SOURCES=$(find . -name "*.cs" -type f | sed 's|^\./||' | awk '{printf "    <Compile Include=\"%s\" />\n", $0}')
+
+        # Create SDK-style .csproj with RimRef
         cat > DubsHeatPumps.csproj << 'EOF'
-        <Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <TargetFramework>net472</TargetFramework>
-            <OutputPath>../../Assemblies/</OutputPath>
-            <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-            <DebugType>none</DebugType>
-            <LangVersion>latest</LangVersion>
-          </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputPath>../../Assemblies/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>DubsHeatPumps</RootNamespace>
+  </PropertyGroup>
 
-          <ItemGroup>
-            <PackageReference Include="Krafs.Publicizer" Version="2.2.1">
-              <PrivateAssets>all</PrivateAssets>
-              <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            </PackageReference>
-            <PackageReference Include="Lib.Harmony" Version="2.2.2" />
-          </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Krafs.Rimworld.Ref" Version="1.5.4104" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
 
-          <ItemGroup>
-            <Reference Include="Assembly-CSharp">
-              <HintPath>../../lib/Assembly-CSharp.dll</HintPath>
-              <Private>False</Private>
-            </Reference>
-            <Reference Include="DubsBadHygiene">
-              <HintPath>../../lib/Assembly-CSharp.dll</HintPath>
-              <Private>False</Private>
-            </Reference>
-            <Reference Include="UnityEngine.CoreModule">
-              <HintPath>../../lib/Assembly-CSharp.dll</HintPath>
-              <Private>False</Private>
-            </Reference>
-          </ItemGroup>
+  <ItemGroup>
+    <Reference Include="DubsBadHygiene">
+      <HintPath>../../lib/DubsBadHygiene.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
 
-          <ItemGroup>
-            <Compile Include="**/*.cs" />
-          </ItemGroup>
-        </Project>
-        EOF
+  <ItemGroup>
+EOF
+        echo "$SOURCES" >> DubsHeatPumps.csproj
+        cat >> DubsHeatPumps.csproj << 'EOF'
+  </ItemGroup>
+</Project>
+EOF
 
     - name: Restore dependencies
       run: |
         cd Source/DubsHeatPumps
-        dotnet restore || echo "Restore completed with warnings"
+        dotnet restore
 
     - name: Build
       run: |
         cd Source/DubsHeatPumps
-        dotnet build -c Release --no-restore || echo "Build completed with warnings"
+        dotnet build -c Release --no-restore
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
