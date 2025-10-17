@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-	<name>Dub's Heat Pumps</name>
+	<name>Dubs Heat Pumps</name>
 	<packageId>Sh0tybumbati.DubsHeatPumps</packageId>
 	<author>Sh0tybumbati</author>
 	<url>https://github.com/Sh0tybumbati/dubs-heatpump</url>
@@ -19,13 +19,16 @@
 	<loadAfter>
 		<li>Dubwise.DubsBadHygiene</li>
 	</loadAfter>
-	<description>Adds heat pumps to Dub's Bad Hygiene climate control system. These advanced split-type air conditioners automatically switch between heating and cooling modes based on room temperature, providing year-round climate control.
+	<description>Adds advanced heat pump systems to Dub's Bad Hygiene climate control. These intelligent split-type air conditioners automatically switch between heating and cooling modes based on room temperature, providing year-round climate control with minimal user intervention.
 
 Features:
 - Split-type heat pump system with indoor and outdoor units
-- Automatic mode switching between heating and cooling
-- Efficient temperature regulation within threshold ranges
-- Seamlessly integrates with Dub's Bad Hygiene HVAC system
+- Automatic mode switching with ±2°C temperature threshold
+- Manual override via color-coded mode toggle button (orange for heating, blue for cooling)
+- Heating automatically disabled below -25°C outdoor temperature to prevent damage
+- Multiple power modes for precise temperature control
+- Seamlessly integrates with Dub's Bad Hygiene Air duct system
+- Capacity bar displays current heating/cooling output
 
 Requires Dub's Bad Hygiene to function.</description>
 </ModMetaData>
