@@ -154,6 +154,20 @@ jobs:
         path: Assemblies/*.dll
         if-no-files-found: warn
 
+    - name: Commit compiled DLL
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        git add Assemblies/*.dll
+        # Only commit if there are changes
+        if ! git diff --cached --quiet; then
+          git commit -m "Auto-build: Update compiled DLL [skip ci]"
+          git push
+        else
+          echo "No changes to DLL, skipping commit"
+        fi
+
     - name: Create release on tag
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
