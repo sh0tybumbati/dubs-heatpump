@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+	<!-- Heat Pump Outdoor Unit -->
+	<ThingDef ParentName="BuildingBase">
+		<defName>HeatPumpOutdoorUnit</defName>
+		<label>heat pump outdoor unit</label>
+		<description>Reversible outdoor unit that can both heat and cool. More efficient than separate heating and cooling systems. Must be placed outdoors and connected to heat pump indoor units via Air ducts. Heating disabled below -25°C (-13°F) outdoor temperature.</description>
+		<designatorDropdown>HeatPump</designatorDropdown>
+		<graphicData>
+			<texPath>DBH/Things/Building/Heating/Aircon</texPath>
+			<graphicClass>Graphic_Single</graphicClass>
+			<drawSize>(1,1)</drawSize>
+		</graphicData>
+		<blockWind>false</blockWind>
+		<castEdgeShadows>true</castEdgeShadows>
+		<pathCost>8</pathCost>
+		<size>(1,1)</size>
+		<costList>
+			<Steel>90</Steel>
+			<ComponentIndustrial>3</ComponentIndustrial>
+		</costList>
+		<rotatable>false</rotatable>
+		<statBases>
+			<MaxHitPoints>125</MaxHitPoints>
+			<WorkToBuild>1600</WorkToBuild>
+			<Mass>50</Mass>
+		</statBases>
+		<comps>
+			<li Class="DubsBadHygiene.CompProperties_Pipe">
+				<mode>Air</mode>
+			</li>
+			<li Class="DubsBadHygiene.CompProperties_AirconBaseUnit">
+				<BaseCapacity>120</BaseCapacity>
+				<PowerModes>10</PowerModes>
+			</li>
+			<li Class="CompProperties_Power">
+				<compClass>CompPowerTrader</compClass>
+				<basePowerConsumption>250</basePowerConsumption>
+			</li>
+			<li Class="CompProperties_Flickable"/>
+			<li Class="CompProperties_Breakdownable"/>
+		</comps>
+		<researchPrerequisites>
+			<li>HeatPumps</li>
+		</researchPrerequisites>
+		<designationCategory>Temperature</designationCategory>
+	</ThingDef>
+
+	<!-- Heat Pump Indoor Unit -->
+	<ThingDef ParentName="BuildingBase">
+		<defName>HeatPumpIndoorUnit</defName>
+		<label>heat pump indoor unit</label>
+		<description>Indoor unit that automatically switches between heating and cooling based on target temperature. Requires connection to heat pump outdoor unit via Air ducts. Requires 120 capacity units from outdoor unit. Heating disabled when outdoor temperature below -25°C (-13°F).</description>
+		<designatorDropdown>HeatPump</designatorDropdown>
+		<passability>Standable</passability>
+		<blockWind>false</blockWind>
+		<pathCost>0</pathCost>
+		<castEdgeShadows>false</castEdgeShadows>
+		<clearBuildingArea>false</clearBuildingArea>
+		<building>
+			<isInert>true</isInert>
+			<isEdifice>false</isEdifice>
+			<isAttachment>true</isAttachment>
+		</building>
+		<rotatable>true</rotatable>
+		<statBases>
+			<MaxHitPoints>100</MaxHitPoints>
+			<WorkToBuild>400</WorkToBuild>
+			<Mass>50</Mass>
+		</statBases>
+		<costList>
+			<Steel>25</Steel>
+		</costList>
+		<uiIconPath>DBH/UI/centralAirVent</uiIconPath>
+		<comps>
+			<li>
+				<compClass>CompColorable</compClass>
+			</li>
+			<li Class="CompProperties_Power">
+				<compClass>CompPowerTrader</compClass>
+				<basePowerConsumption>25</basePowerConsumption>
+			</li>
+			<li Class="DubsBadHygiene.CompProperties_Pipe">
+				<mode>Air</mode>
+			</li>
+			<li Class="DubsBadHygiene.CompProperties_CompAirconUnit">
+				<compClass>DubsBadHygiene.CompRoomUnit</compClass>
+				<energyPerSecond>-21</energyPerSecond>
+				<CoolingRate>250</CoolingRate>
+				<Capacity>120</Capacity>
+			</li>
+			<li>
+				<compClass>DubsHeatPumps.CompHeatPumpIndoor</compClass>
+			</li>
+			<li Class="CompProperties_TempControl">
+				<compClass>DubsBadHygiene.CompThermostat</compClass>
+				<maxTargetTemperature>35</maxTargetTemperature>
+				<minTargetTemperature>5</minTargetTemperature>
+				<defaultTargetTemperature>21</defaultTargetTemperature>
+			</li>
+			<li Class="CompProperties_Flickable"/>
+		</comps>
+		<placeWorkers>
+			<li>DubsBadHygiene.PlaceWorker_Aircon</li>
+			<li>Placeworker_AttachedToWall</li>
+		</placeWorkers>
+		<graphicData>
+			<texPath>DBH/Things/Building/Heating/centralAirVent</texPath>
+			<graphicClass>Graphic_Multi</graphicClass>
+			<drawOffsetNorth>(0,0,0.7)</drawOffsetNorth>
+			<drawOffsetSouth>(0,0,-0.5)</drawOffsetSouth>
+			<drawOffsetWest>(-0.5,0,0)</drawOffsetWest>
+			<drawOffsetEast>(0.5,0,0)</drawOffsetEast>
+			<drawSize>(1,1)</drawSize>
+			<damageData>
+				<rect>(0.05,0.05,0.95,0.95)</rect>
+			</damageData>
+		</graphicData>
+		<altitudeLayer>BuildingOnTop</altitudeLayer>
+		<terrainAffordanceNeeded IsNull="True"/>
+		<researchPrerequisites>
+			<li>HeatPumps</li>
+		</researchPrerequisites>
+		<drawPlaceWorkersWhileSelected>true</drawPlaceWorkersWhileSelected>
+		<designationCategory>Temperature</designationCategory>
+	</ThingDef>
+
+</Defs>
