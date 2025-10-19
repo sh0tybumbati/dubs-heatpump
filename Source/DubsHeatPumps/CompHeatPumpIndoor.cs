@@ -12,8 +12,12 @@ namespace DubsHeatPumps
     [StaticConstructorOnStartup]
     public class CompHeatPumpIndoor : ThingComp
     {
-        private static readonly Texture2D HeatingIcon = ContentFinder<Texture2D>.Get("UI/Commands/TempLower", false) ?? BaseContent.BadTex;
-        private static readonly Texture2D CoolingIcon = ContentFinder<Texture2D>.Get("UI/Commands/TempRaise", false) ?? BaseContent.BadTex;
+        private static readonly Texture2D HeatingIcon = ContentFinder<Texture2D>.Get("UI/Commands/TempRaise", false) ?? BaseContent.BadTex;
+        private static readonly Texture2D CoolingIcon = ContentFinder<Texture2D>.Get("UI/Commands/TempLower", false) ?? BaseContent.BadTex;
+
+        private static readonly Material HeatingCapacityFilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(1f, 0.5f, 0.2f)); // Orange
+        private static readonly Material CoolingCapacityFilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.4f, 0.7f, 1f)); // Blue
+        private static readonly Material CapacityUnfilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.3f, 0.3f, 0.3f)); // Dark gray
 
         private const float MODE_THRESHOLD = 2f; // Switch mode when 2°C away from target
         private const float MIN_HEATING_OUTDOOR_TEMP = -25f; // -25°C = -13°F
@@ -182,6 +186,28 @@ namespace DubsHeatPumps
             }
 
             return result;
+        }
+
+        public override void PostDraw()
+        {
+            base.PostDraw();
+
+            // Draw capacity bar showing heat pump capacity usage
+            // The capacity value (120) comes from the XML CompProperties_CompAirconUnit
+            GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
+            r.center = parent.DrawPos + Vector3.up * 0.1f;
+            r.size = new Vector2(0.55f, 0.08f);
+
+            // Show 100% capacity usage when active (120/120), 0% when off
+            bool isActive = parent.GetComp<CompPowerTrader>()?.PowerOn ?? false;
+            r.fillPercent = isActive ? 1f : 0f;
+
+            // Color the bar based on current mode
+            r.filledMat = isHeating ? HeatingCapacityFilled : CoolingCapacityFilled;
+            r.unfilledMat = CapacityUnfilled;
+            r.margin = 0.15f;
+            r.rotation = Rot4.North;
+            GenDraw.DrawFillableBar(r);
         }
 
         public override IEnumerable<Gizmo> CompGetGizmosExtra()

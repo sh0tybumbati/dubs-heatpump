@@ -44,10 +44,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Building_HeatPumpIndoor.cs" />
-    <Compile Include="Building_HeatPumpOutdoor.cs" />
-    <Compile Include="CompHeatPump.cs" />
-    <Compile Include="CompProperties_HeatPump.cs" />
+    <Compile Include="CompHeatPumpIndoor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
