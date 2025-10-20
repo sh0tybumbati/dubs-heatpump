@@ -62,13 +62,18 @@ namespace DubsHeatPumps
             // Push heat every tick when in heating mode (not just once per second)
             if (isHeating && CanHeat)
             {
-                CompPowerTrader powerComp = parent.GetComp<CompPowerTrader>();
                 if (powerComp != null && powerComp.PowerOn)
                 {
                     // Push heat every tick to match vanilla heater performance
-                    // Vanilla heater: 21 heat/sec, but GenTemperature.PushHeat uses different scale
-                    // Testing shows we need ~4.0 per tick to match vanilla heater performance
-                    GenTemperature.PushHeat(parent.Position, parent.Map, 4.0f);
+                    // Use GenTemperature.ControlTemperatureTempChange for accurate heating
+                    float heatPerTick = 21f / 60f; // 21 heat per second = 0.35 per tick
+
+                    Room room = parent.GetRoom(RegionType.Set_Passable);
+                    if (room != null && !room.UsesOutdoorTemperature)
+                    {
+                        float heatPush = heatPerTick / room.CellCount;
+                        room.Temperature += heatPush;
+                    }
                 }
             }
         }
