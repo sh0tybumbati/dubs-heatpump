@@ -23,8 +23,8 @@ namespace DubsHeatPumps
 
         private bool isHeating = false;
         private bool manualModeOverride = false; // Allow manual control
-        private CompTempControl tempControl;
-        private ThingComp airconComp; // DBH's CompAirconUnit
+        private ThingComp thermostatComp; // DBH's CompThermostat (doesn't inherit from CompTempControl!)
+        private ThingComp airconComp; // DBH's CompRoomUnit
         private CompPowerTrader powerComp;
 
         public override void PostSpawnSetup(bool respawningAfterLoad)
@@ -38,22 +38,13 @@ namespace DubsHeatPumps
                 Log.Message($"  - {comp.GetType().FullName}");
             }
 
-            // Try to get CompTempControl - DBH uses CompThermostat which inherits from it
-            tempControl = parent.GetComp<CompTempControl>();
-            if (tempControl == null)
-            {
-                // Try finding by checking inheritance
-                tempControl = parent.AllComps.Find(c => c is CompTempControl) as CompTempControl;
-            }
-            if (tempControl == null)
-            {
-                // Try finding by name
-                tempControl = parent.AllComps.Find(c => c.GetType().Name == "CompThermostat") as CompTempControl;
-            }
+            // Get DBH's CompThermostat - it does NOT inherit from CompTempControl!
+            // We need to store it as ThingComp and use reflection to access its properties
+            thermostatComp = parent.AllComps.Find(c => c.GetType().Name == "CompThermostat");
 
             // Debug: Log component status
-            Log.Message($"HeatPump PostSpawnSetup: tempControl={(tempControl != null ? "FOUND" : "NULL")}, " +
-                $"type={(tempControl?.GetType().FullName ?? "N/A")}");
+            Log.Message($"HeatPump PostSpawnSetup: thermostatComp={(thermostatComp != null ? "FOUND" : "NULL")}, " +
+                $"type={(thermostatComp?.GetType().FullName ?? "N/A")}");
 
             powerComp = parent.GetComp<CompPowerTrader>();
 
@@ -71,12 +62,13 @@ namespace DubsHeatPumps
             if (!respawningAfterLoad)
             {
                 Room room = parent.GetRoom(RegionType.Set_Passable);
-                if (room != null && tempControl != null)
+                if (room != null && thermostatComp != null)
                 {
+                    float targetTemp = GetTargetTemperature();
                     // Start in heating mode if room is colder than target
-                    isHeating = room.Temperature < tempControl.targetTemperature;
+                    isHeating = room.Temperature < targetTemp;
                     Log.Message($"HeatPump initialized to {(isHeating ? "HEATING" : "COOLING")} mode " +
-                        $"(room: {room.Temperature:F1}°C, target: {tempControl.targetTemperature:F1}°C)");
+                        $"(room: {room.Temperature:F1}°C, target: {targetTemp:F1}°C)");
                 }
             }
         }
@@ -131,11 +123,41 @@ namespace DubsHeatPumps
             }
         }
 
+        /// <summary>
+        /// Get target temperature from DBH's CompThermostat using reflection
+        /// </summary>
+        private float GetTargetTemperature()
+        {
+            if (thermostatComp == null)
+                return 21f; // Default fallback
+
+            try
+            {
+                var targetTempField = thermostatComp.GetType().GetField("targetTemperature",
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public);
+
+                if (targetTempField != null)
+                {
+                    var value = targetTempField.GetValue(thermostatComp);
+                    if (value is float temp)
+                        return temp;
+                }
+            }
+            catch
+            {
+                // Reflection failed, return default
+            }
+
+            return 21f; // Default fallback
+        }
+
         private void UpdateHeatPumpMode()
         {
-            if (tempControl == null)
+            if (thermostatComp == null)
             {
-                Log.Warning("HeatPump: tempControl is null");
+                Log.Warning("HeatPump: thermostatComp is null");
                 return;
             }
 
@@ -147,7 +169,7 @@ namespace DubsHeatPumps
             }
 
             float roomTemp = room.Temperature;
-            float targetTemp = tempControl.targetTemperature;
+            float targetTemp = GetTargetTemperature();
             float outdoorTemp = parent.Map.mapTemperature.OutdoorTemp;
 
             // Check if outdoor temperature allows heating
@@ -338,10 +360,10 @@ namespace DubsHeatPumps
 
             // Room and target temperatures
             Room room = parent.GetRoom(RegionType.Set_Passable);
-            if (room != null && tempControl != null)
+            if (room != null && thermostatComp != null)
             {
                 float roomTemp = room.Temperature;
-                float targetTemp = tempControl.targetTemperature;
+                float targetTemp = GetTargetTemperature();
                 result += $"Room: {roomTemp.ToStringTemperature()} / Target: {targetTemp.ToStringTemperature()}\n";
             }
 
@@ -352,8 +374,8 @@ namespace DubsHeatPumps
                 result += $"Outdoor: {outdoorTemp.ToStringTemperature()}";
 
                 // Show warning if cannot heat
-                if (room != null && tempControl != null &&
-                    room.Temperature < (tempControl.targetTemperature - MODE_THRESHOLD) && !CanHeat)
+                if (room != null && thermostatComp != null &&
+                    room.Temperature < (GetTargetTemperature() - MODE_THRESHOLD) && !CanHeat)
                 {
                     result += $"\nHeating unavailable below {MIN_HEATING_OUTDOOR_TEMP.ToStringTemperature()} outdoor";
                 }
