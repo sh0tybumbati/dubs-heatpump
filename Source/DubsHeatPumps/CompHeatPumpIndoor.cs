@@ -65,8 +65,10 @@ namespace DubsHeatPumps
                 CompPowerTrader powerComp = parent.GetComp<CompPowerTrader>();
                 if (powerComp != null && powerComp.PowerOn)
                 {
-                    // Push heat every tick (21 heat per second / 60 ticks = 0.35 per tick)
-                    GenTemperature.PushHeat(parent.Position, parent.Map, 0.35f);
+                    // Push heat every tick to match vanilla heater performance
+                    // Vanilla heater: 21 heat/sec, but GenTemperature.PushHeat uses different scale
+                    // Testing shows we need ~4.0 per tick to match vanilla heater performance
+                    GenTemperature.PushHeat(parent.Position, parent.Map, 4.0f);
                 }
             }
         }
