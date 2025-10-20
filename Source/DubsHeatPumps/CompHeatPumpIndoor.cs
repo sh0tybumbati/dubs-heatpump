@@ -73,7 +73,27 @@ namespace DubsHeatPumps
                     {
                         float heatPush = heatPerTick / room.CellCount;
                         room.Temperature += heatPush;
+
+                        // Debug log every 5 seconds
+                        if (Find.TickManager.TicksGame % 300 == 0)
+                        {
+                            Log.Message($"HeatPump HEATING: Pushing {heatPush:F4}°C to room (size: {room.CellCount}, temp before: {(room.Temperature - heatPush):F2}°C, after: {room.Temperature:F2}°C)");
+                        }
                     }
+                }
+                else
+                {
+                    if (Find.TickManager.TicksGame % 300 == 0)
+                    {
+                        Log.Warning($"HeatPump can't heat: powerComp={(powerComp != null ? "exists" : "null")}, PowerOn={(powerComp?.PowerOn ?? false)}");
+                    }
+                }
+            }
+            else
+            {
+                if (Find.TickManager.TicksGame % 300 == 0 && (isHeating || !CanHeat))
+                {
+                    Log.Warning($"HeatPump not heating: isHeating={isHeating}, CanHeat={CanHeat}");
                 }
             }
         }
@@ -81,11 +101,17 @@ namespace DubsHeatPumps
         private void UpdateHeatPumpMode()
         {
             if (tempControl == null)
+            {
+                Log.Warning("HeatPump: tempControl is null");
                 return;
+            }
 
             Room room = parent.GetRoom(RegionType.Set_Passable);
             if (room == null)
+            {
+                Log.Warning("HeatPump: room is null");
                 return;
+            }
 
             float roomTemp = room.Temperature;
             float targetTemp = tempControl.targetTemperature;
@@ -93,6 +119,13 @@ namespace DubsHeatPumps
 
             // Check if outdoor temperature allows heating
             bool canHeat = outdoorTemp >= MIN_HEATING_OUTDOOR_TEMP;
+
+            // Log every 5 seconds for debugging
+            if (Find.TickManager.TicksGame % 300 == 0)
+            {
+                Log.Message($"HeatPump Debug - Room: {roomTemp:F1}°C, Target: {targetTemp:F1}°C, Outdoor: {outdoorTemp:F1}°C, " +
+                    $"Mode: {(isHeating ? "Heat" : "Cool")}, ManualOverride: {manualModeOverride}, CanHeat: {canHeat}, PowerOn: {(powerComp?.PowerOn ?? false)}");
+            }
 
             // Only auto-switch if not in manual override mode
             if (!manualModeOverride)
@@ -104,11 +137,19 @@ namespace DubsHeatPumps
                 // Switch modes based on need
                 if (shouldHeat && canHeat)
                 {
-                    isHeating = true;
+                    if (!isHeating)
+                    {
+                        Log.Message($"HeatPump switching to HEATING mode (room {roomTemp:F1}°C < target {targetTemp:F1}°C)");
+                        isHeating = true;
+                    }
                 }
                 else if (shouldCool)
                 {
-                    isHeating = false;
+                    if (isHeating)
+                    {
+                        Log.Message($"HeatPump switching to COOLING mode (room {roomTemp:F1}°C > target {targetTemp:F1}°C)");
+                        isHeating = false;
+                    }
                 }
                 // If in dead zone (within threshold), maintain current mode
             }
