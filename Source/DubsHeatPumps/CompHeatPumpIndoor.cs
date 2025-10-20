@@ -15,8 +15,7 @@ namespace DubsHeatPumps
         private static readonly Texture2D HeatingIcon = ContentFinder<Texture2D>.Get("UI/Commands/TempRaise", false) ?? BaseContent.BadTex;
         private static readonly Texture2D CoolingIcon = ContentFinder<Texture2D>.Get("UI/Commands/TempLower", false) ?? BaseContent.BadTex;
 
-        private static readonly Material HeatingCapacityFilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(1f, 0.5f, 0.2f)); // Orange
-        private static readonly Material CoolingCapacityFilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.4f, 0.7f, 1f)); // Blue
+        private static readonly Material CapacityFilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.5f, 0.8f, 1f)); // Cyan like DBH
         private static readonly Material CapacityUnfilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.3f, 0.3f, 0.3f)); // Dark gray
 
         private const float MODE_THRESHOLD = 2f; // Switch mode when 2°C away from target
@@ -40,10 +39,15 @@ namespace DubsHeatPumps
                 tempControl = parent.AllComps.Find(c => c is CompTempControl) as CompTempControl;
             }
 
+            // Debug: Log component status
+            Log.Message($"HeatPump PostSpawnSetup: tempControl={(tempControl != null ? "FOUND" : "NULL")}, " +
+                $"type={(tempControl?.GetType().Name ?? "N/A")}");
+
             powerComp = parent.GetComp<CompPowerTrader>();
 
             // Get DBH's aircon component using reflection (can't reference directly)
             airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompAirconUnit");
+            Log.Message($"HeatPump PostSpawnSetup: airconComp={(airconComp != null ? "FOUND" : "NULL")}");
 
             // Initialize mode based on current conditions if not loading from save
             if (!respawningAfterLoad)
@@ -53,6 +57,8 @@ namespace DubsHeatPumps
                 {
                     // Start in heating mode if room is colder than target
                     isHeating = room.Temperature < tempControl.targetTemperature;
+                    Log.Message($"HeatPump initialized to {(isHeating ? "HEATING" : "COOLING")} mode " +
+                        $"(room: {room.Temperature:F1}°C, target: {tempControl.targetTemperature:F1}°C)");
                 }
             }
         }
@@ -72,9 +78,10 @@ namespace DubsHeatPumps
             {
                 if (powerComp != null && powerComp.PowerOn)
                 {
-                    // Push heat every tick to match vanilla heater performance
-                    // Use GenTemperature.ControlTemperatureTempChange for accurate heating
-                    float heatPerTick = 21f / 60f; // 21 heat per second = 0.35 per tick
+                    // Push heat to match vanilla heater performance
+                    // Reduced from 21 to 3 heat/sec to prevent too-fast heating
+                    // The 21 value from XML is for DBH's cooling energy calculation
+                    float heatPerTick = 3f / 60f; // 3 heat per second = 0.05 per tick
 
                     Room room = parent.GetRoom(RegionType.Set_Passable);
                     if (room != null && !room.UsesOutdoorTemperature)
@@ -85,7 +92,7 @@ namespace DubsHeatPumps
                         // Debug log every 5 seconds
                         if (Find.TickManager.TicksGame % 300 == 0)
                         {
-                            Log.Message($"HeatPump HEATING: Pushing {heatPush:F4}°C to room (size: {room.CellCount}, temp before: {(room.Temperature - heatPush):F2}°C, after: {room.Temperature:F2}°C)");
+                            Log.Message($"HeatPump HEATING: Pushing {heatPush:F4}°C to room (size: {room.CellCount}, temp before: {(room.Temperature - heatPush):F2}°C, after: {room.Temperature:F2}°C, rate: 3/sec)");
                         }
                     }
                 }
@@ -142,6 +149,14 @@ namespace DubsHeatPumps
                 bool shouldHeat = roomTemp < (targetTemp - MODE_THRESHOLD);
                 bool shouldCool = roomTemp > (targetTemp + MODE_THRESHOLD);
 
+                // Debug log decision making every 5 seconds
+                if (Find.TickManager.TicksGame % 300 == 0)
+                {
+                    Log.Message($"HeatPump Auto-Switch Check: shouldHeat={shouldHeat} (room {roomTemp:F1}°C < {(targetTemp - MODE_THRESHOLD):F1}°C), " +
+                        $"shouldCool={shouldCool} (room {roomTemp:F1}°C > {(targetTemp + MODE_THRESHOLD):F1}°C), " +
+                        $"inDeadZone={!shouldHeat && !shouldCool}, currentMode={(isHeating ? "Heat" : "Cool")}");
+                }
+
                 // Switch modes based on need
                 if (shouldHeat && canHeat)
                 {
@@ -160,6 +175,14 @@ namespace DubsHeatPumps
                     }
                 }
                 // If in dead zone (within threshold), maintain current mode
+            }
+            else
+            {
+                // Log when in manual override to remind user
+                if (Find.TickManager.TicksGame % 300 == 0)
+                {
+                    Log.Warning($"HeatPump in MANUAL OVERRIDE mode - auto-switching disabled");
+                }
             }
 
             // Disable heating if outdoor temp too low (override manual mode if necessary)
@@ -296,18 +319,19 @@ namespace DubsHeatPumps
         {
             base.PostDraw();
 
-            // Draw capacity bar showing heat pump capacity usage
-            // The capacity value (120) comes from the XML CompProperties_CompAirconUnit
+            // Draw vertical capacity bar matching DBH style
+            // Shows efficiency: available outdoor capacity / indoor capacity requested
             GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
             r.center = parent.DrawPos + Vector3.up * 0.1f;
-            r.size = new Vector2(0.55f, 0.08f);
 
-            // Show 100% capacity usage when active (120/120), 0% when off
-            bool isActive = parent.GetComp<CompPowerTrader>()?.PowerOn ?? false;
-            r.fillPercent = isActive ? 1f : 0f;
+            // Vertical bar dimensions (swap width/height from horizontal)
+            r.size = new Vector2(0.08f, 0.55f);
 
-            // Color the bar based on current mode
-            r.filledMat = isHeating ? HeatingCapacityFilled : CoolingCapacityFilled;
+            // Use actual efficiency from DBH capacity system
+            r.fillPercent = GetDBHEfficiency();
+
+            // Cyan color matching DBH style
+            r.filledMat = CapacityFilled;
             r.unfilledMat = CapacityUnfilled;
             r.margin = 0.15f;
             r.rotation = Rot4.North;
@@ -376,6 +400,7 @@ namespace DubsHeatPumps
                     action = delegate
                     {
                         manualModeOverride = false;
+                        Log.Message($"HeatPump: AUTO MODE ENABLED - manual override disabled");
                     }
                 };
                 yield return autoModeBtn;
