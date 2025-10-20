@@ -31,7 +31,15 @@ namespace DubsHeatPumps
         public override void PostSpawnSetup(bool respawningAfterLoad)
         {
             base.PostSpawnSetup(respawningAfterLoad);
+
+            // Try to get CompTempControl - DBH uses CompThermostat which inherits from it
             tempControl = parent.GetComp<CompTempControl>();
+            if (tempControl == null)
+            {
+                // Try finding by base type name if direct get fails
+                tempControl = parent.AllComps.Find(c => c is CompTempControl) as CompTempControl;
+            }
+
             powerComp = parent.GetComp<CompPowerTrader>();
 
             // Get DBH's aircon component using reflection (can't reference directly)
