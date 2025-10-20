@@ -40,7 +40,7 @@ namespace DubsHeatPumps
                 return;
 
             // Draw vertical capacity bar matching DBH style
-            // Shows efficiency: available outdoor capacity / indoor capacity requested
+            // Shows efficiency: based on outdoor temperature (100% optimal, 50% at extremes)
             GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
             r.center = __instance.DrawPos + Vector3.up * 0.1f;
             r.size = new Vector2(0.08f, 0.55f);
