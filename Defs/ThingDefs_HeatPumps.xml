@@ -64,6 +64,7 @@
 			<isAttachment>true</isAttachment>
 		</building>
 		<rotatable>true</rotatable>
+		<tickerType>Normal</tickerType>
 		<statBases>
 			<MaxHitPoints>100</MaxHitPoints>
 			<WorkToBuild>400</WorkToBuild>
