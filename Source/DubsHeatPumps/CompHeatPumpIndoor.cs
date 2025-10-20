@@ -51,9 +51,21 @@ namespace DubsHeatPumps
         {
             base.CompTick();
 
-            if (parent.IsHashIntervalTick(60)) // Check every 60 ticks (1 second)
+            // Update mode every second
+            if (parent.IsHashIntervalTick(60))
             {
                 UpdateHeatPumpMode();
+            }
+
+            // Push heat every tick when in heating mode (not just once per second)
+            if (isHeating && CanHeat)
+            {
+                CompPowerTrader powerComp = parent.GetComp<CompPowerTrader>();
+                if (powerComp != null && powerComp.PowerOn)
+                {
+                    // Push heat every tick (21 heat per second / 60 ticks = 0.35 per tick)
+                    GenTemperature.PushHeat(parent.Position, parent.Map, 0.35f);
+                }
             }
         }
 
@@ -104,7 +116,7 @@ namespace DubsHeatPumps
             {
                 if (isHeating && canHeat)
                 {
-                    // In heating mode: disable DBH's cooling and push heat ourselves
+                    // In heating mode: disable DBH's cooling (heat is pushed in CompTick)
                     // Use reflection to disable the aircon comp
                     var compEnabled = airconComp.GetType().GetField("compEnabled",
                         System.Reflection.BindingFlags.Instance |
@@ -114,10 +126,6 @@ namespace DubsHeatPumps
                     {
                         compEnabled.SetValue(airconComp, false);
                     }
-
-                    // Push heat at the inverse rate of cooling (energyPerSecond = -21, so we push +21)
-                    float heatPushRate = 21f;
-                    GenTemperature.PushHeat(parent, heatPushRate);
                 }
                 else
                 {
