@@ -65,14 +65,14 @@ namespace DubsHeatPumps
                 UpdateHeatPumpMode();
             }
 
-            // Push heat every tick when in heating mode (not just once per second)
+            // Push heat every tick when in heating mode
             if (isHeating && CanHeat)
             {
                 if (powerComp != null && powerComp.PowerOn)
                 {
-                    // Push heat to match vanilla heater performance
-                    // Reduced from 21 to 3 heat/sec to prevent too-fast heating
-                    float heatPerTick = 3f / 60f; // 3 heat per second = 0.05 per tick
+                    // Match vanilla heater performance (21 heat/sec)
+                    // Matches DBH cooling rate for symmetry
+                    float heatPerTick = 21f / 60f; // 21 heat per second = 0.35 per tick
 
                     Room room = parent.GetRoom(RegionType.Set_Passable);
                     if (room != null && !room.UsesOutdoorTemperature)
