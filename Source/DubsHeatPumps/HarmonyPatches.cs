@@ -18,17 +18,18 @@ namespace DubsHeatPumps
     }
 
     /// <summary>
-    /// Patch Thing.Draw() to draw capacity bars on wall-mounted heat pump units
-    /// Thing.Draw() is called every frame during real-time rendering, perfect for overlays
+    /// Patch Building.DrawAt() to draw capacity bars on wall-mounted heat pump units
+    /// Building.DrawAt() is called every frame during real-time rendering, perfect for overlays
     /// </summary>
-    [HarmonyPatch(typeof(Thing), "Draw")]
-    public static class Thing_Draw_Patch
+    [HarmonyPatch(typeof(Building), "DrawAt")]
+    [StaticConstructorOnStartup]
+    public static class Building_DrawAt_Patch
     {
         private static readonly Material CapacityFilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.5f, 0.8f, 1f)); // Cyan like DBH
         private static readonly Material CapacityUnfilled = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.3f, 0.3f, 0.3f)); // Dark gray
 
         [HarmonyPostfix]
-        public static void Postfix(Thing __instance)
+        public static void Postfix(Building __instance, Vector3 drawLoc, bool flip)
         {
             // Only draw for heat pump indoor units
             CompHeatPumpIndoor heatPump = __instance.TryGetComp<CompHeatPumpIndoor>();
