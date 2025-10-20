@@ -31,23 +31,41 @@ namespace DubsHeatPumps
         {
             base.PostSpawnSetup(respawningAfterLoad);
 
+            // Debug: List all components on this thing
+            Log.Message($"HeatPump PostSpawnSetup: All components on {parent.def.defName}:");
+            foreach (var comp in parent.AllComps)
+            {
+                Log.Message($"  - {comp.GetType().FullName}");
+            }
+
             // Try to get CompTempControl - DBH uses CompThermostat which inherits from it
             tempControl = parent.GetComp<CompTempControl>();
             if (tempControl == null)
             {
-                // Try finding by base type name if direct get fails
+                // Try finding by checking inheritance
                 tempControl = parent.AllComps.Find(c => c is CompTempControl) as CompTempControl;
+            }
+            if (tempControl == null)
+            {
+                // Try finding by name
+                tempControl = parent.AllComps.Find(c => c.GetType().Name == "CompThermostat") as CompTempControl;
             }
 
             // Debug: Log component status
             Log.Message($"HeatPump PostSpawnSetup: tempControl={(tempControl != null ? "FOUND" : "NULL")}, " +
-                $"type={(tempControl?.GetType().Name ?? "N/A")}");
+                $"type={(tempControl?.GetType().FullName ?? "N/A")}");
 
             powerComp = parent.GetComp<CompPowerTrader>();
 
-            // Get DBH's aircon component using reflection (can't reference directly)
-            airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompAirconUnit");
-            Log.Message($"HeatPump PostSpawnSetup: airconComp={(airconComp != null ? "FOUND" : "NULL")}");
+            // Get DBH's aircon component - it's actually CompRoomUnit, not CompAirconUnit!
+            airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompRoomUnit");
+            if (airconComp == null)
+            {
+                // Fallback: try CompAirconUnit
+                airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompAirconUnit");
+            }
+            Log.Message($"HeatPump PostSpawnSetup: airconComp={(airconComp != null ? "FOUND" : "NULL")}, " +
+                $"type={(airconComp?.GetType().FullName ?? "N/A")}");
 
             // Initialize mode based on current conditions if not loading from save
             if (!respawningAfterLoad)
