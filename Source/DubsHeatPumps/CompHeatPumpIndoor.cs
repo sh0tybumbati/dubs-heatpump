@@ -26,11 +26,13 @@ namespace DubsHeatPumps
         private bool manualModeOverride = false; // Allow manual control
         private CompTempControl tempControl;
         private ThingComp airconComp; // DBH's CompAirconUnit
+        private CompPowerTrader powerComp;
 
         public override void PostSpawnSetup(bool respawningAfterLoad)
         {
             base.PostSpawnSetup(respawningAfterLoad);
             tempControl = parent.GetComp<CompTempControl>();
+            powerComp = parent.GetComp<CompPowerTrader>();
 
             // Get DBH's aircon component using reflection (can't reference directly)
             airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompAirconUnit");
@@ -155,6 +157,48 @@ namespace DubsHeatPumps
             }
         }
 
+        /// <summary>
+        /// Calculate heat pump efficiency based on outdoor temperature
+        /// Returns coefficient of performance (COP) - higher is more efficient
+        /// Heating: Better efficiency when outdoor temp is warmer
+        /// Cooling: Better efficiency when outdoor temp is cooler
+        /// </summary>
+        private float CalculateEfficiency()
+        {
+            if (parent?.Map == null)
+                return 1f;
+
+            float outdoorTemp = parent.Map.mapTemperature.OutdoorTemp;
+            Room room = parent.GetRoom(RegionType.Set_Passable);
+            if (room == null || tempControl == null)
+                return 1f;
+
+            float indoorTemp = room.Temperature;
+            float targetTemp = tempControl.targetTemperature;
+            float tempDifference = Mathf.Abs(outdoorTemp - targetTemp);
+
+            if (isHeating)
+            {
+                // Heating efficiency: decreases as outdoor temp gets colder
+                // At 20°C outdoor: ~100% efficient (COP 4.0)
+                // At 0°C outdoor: ~75% efficient (COP 3.0)
+                // At -20°C outdoor: ~50% efficient (COP 2.0)
+                float efficiencyFactor = Mathf.Lerp(1f, 0.5f, Mathf.Clamp01((20f - outdoorTemp) / 40f));
+                return efficiencyFactor;
+            }
+            else
+            {
+                // Cooling efficiency: decreases as outdoor temp gets hotter
+                // At 20°C outdoor: ~100% efficient
+                // At 35°C outdoor: ~75% efficient
+                // At 50°C outdoor: ~50% efficient
+                float efficiencyFactor = Mathf.Lerp(1f, 0.5f, Mathf.Clamp01((outdoorTemp - 20f) / 30f));
+                return efficiencyFactor;
+            }
+        }
+
+        public float CurrentEfficiency => CalculateEfficiency();
+
         public override void PostExposeData()
         {
             base.PostExposeData();
@@ -169,6 +213,10 @@ namespace DubsHeatPumps
             // Current mode
             string mode = isHeating ? "Heating" : "Cooling";
             result += $"Mode: {mode}\n";
+
+            // Efficiency
+            float efficiency = CalculateEfficiency();
+            result += $"Efficiency: {(efficiency * 100f).ToString("F0")}%\n";
 
             // Room and target temperatures
             Room room = parent.GetRoom(RegionType.Set_Passable);
