@@ -305,6 +305,12 @@ namespace DubsHeatPumps
         {
             base.PostDraw();
 
+            // Debug: Check if PostDraw is being called
+            if (Find.TickManager.TicksGame % 60 == 0) // Log once per second
+            {
+                Log.Message($"PostDraw CALLED for {parent.Label} at {parent.DrawPos}");
+            }
+
             // Draw vertical capacity bar matching DBH style
             // Shows efficiency: available outdoor capacity / indoor capacity requested
             GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
@@ -315,6 +321,14 @@ namespace DubsHeatPumps
             r.unfilledMat = CapacityUnfilled;
             r.margin = 0.15f;
             r.rotation = Rot4.North;
+
+            // Debug: Log bar parameters
+            if (Find.TickManager.TicksGame % 60 == 0)
+            {
+                Log.Message($"Drawing bar: center={r.center}, size={r.size}, fill={r.fillPercent:F2}, " +
+                    $"filledMat={(r.filledMat != null ? "OK" : "NULL")}, unfilledMat={(r.unfilledMat != null ? "OK" : "NULL")}");
+            }
+
             GenDraw.DrawFillableBar(r);
         }
 
