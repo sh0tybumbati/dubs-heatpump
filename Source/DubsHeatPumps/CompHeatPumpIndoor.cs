@@ -31,44 +31,26 @@ namespace DubsHeatPumps
         {
             base.PostSpawnSetup(respawningAfterLoad);
 
-            // Debug: List all components on this thing
-            Log.Message($"HeatPump PostSpawnSetup: All components on {parent.def.defName}:");
-            foreach (var comp in parent.AllComps)
-            {
-                Log.Message($"  - {comp.GetType().FullName}");
-            }
-
             // Get DBH's CompThermostat - it does NOT inherit from CompTempControl!
-            // We need to store it as ThingComp and use reflection to access its properties
             thermostatComp = parent.AllComps.Find(c => c.GetType().Name == "CompThermostat");
-
-            // Debug: Log component status
-            Log.Message($"HeatPump PostSpawnSetup: thermostatComp={(thermostatComp != null ? "FOUND" : "NULL")}, " +
-                $"type={(thermostatComp?.GetType().FullName ?? "N/A")}");
-
             powerComp = parent.GetComp<CompPowerTrader>();
 
-            // Get DBH's aircon component - it's actually CompRoomUnit, not CompAirconUnit!
+            // Get DBH's CompRoomUnit
             airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompRoomUnit");
             if (airconComp == null)
             {
                 // Fallback: try CompAirconUnit
                 airconComp = parent.AllComps.Find(c => c.GetType().Name == "CompAirconUnit");
             }
-            Log.Message($"HeatPump PostSpawnSetup: airconComp={(airconComp != null ? "FOUND" : "NULL")}, " +
-                $"type={(airconComp?.GetType().FullName ?? "N/A")}");
 
             // Initialize mode based on current conditions if not loading from save
-            if (!respawningAfterLoad)
+            if (!respawningAfterLoad && thermostatComp != null)
             {
                 Room room = parent.GetRoom(RegionType.Set_Passable);
-                if (room != null && thermostatComp != null)
+                if (room != null)
                 {
                     float targetTemp = GetTargetTemperature();
-                    // Start in heating mode if room is colder than target
                     isHeating = room.Temperature < targetTemp;
-                    Log.Message($"HeatPump initialized to {(isHeating ? "HEATING" : "COOLING")} mode " +
-                        $"(room: {room.Temperature:F1}°C, target: {targetTemp:F1}°C)");
                 }
             }
         }
@@ -90,7 +72,6 @@ namespace DubsHeatPumps
                 {
                     // Push heat to match vanilla heater performance
                     // Reduced from 21 to 3 heat/sec to prevent too-fast heating
-                    // The 21 value from XML is for DBH's cooling energy calculation
                     float heatPerTick = 3f / 60f; // 3 heat per second = 0.05 per tick
 
                     Room room = parent.GetRoom(RegionType.Set_Passable);
@@ -98,27 +79,7 @@ namespace DubsHeatPumps
                     {
                         float heatPush = heatPerTick / room.CellCount;
                         room.Temperature += heatPush;
-
-                        // Debug log every 5 seconds
-                        if (Find.TickManager.TicksGame % 300 == 0)
-                        {
-                            Log.Message($"HeatPump HEATING: Pushing {heatPush:F4}°C to room (size: {room.CellCount}, temp before: {(room.Temperature - heatPush):F2}°C, after: {room.Temperature:F2}°C, rate: 3/sec)");
-                        }
                     }
-                }
-                else
-                {
-                    if (Find.TickManager.TicksGame % 300 == 0)
-                    {
-                        Log.Warning($"HeatPump can't heat: powerComp={(powerComp != null ? "exists" : "null")}, PowerOn={(powerComp?.PowerOn ?? false)}");
-                    }
-                }
-            }
-            else
-            {
-                if (Find.TickManager.TicksGame % 300 == 0 && (isHeating || !CanHeat))
-                {
-                    Log.Warning($"HeatPump not heating: isHeating={isHeating}, CanHeat={CanHeat}");
                 }
             }
         }
@@ -155,18 +116,12 @@ namespace DubsHeatPumps
 
         private void UpdateHeatPumpMode()
         {
-            if (thermostatComp == null)
-            {
-                Log.Warning("HeatPump: thermostatComp is null");
+            if (thermostatComp == null || parent?.Map == null)
                 return;
-            }
 
             Room room = parent.GetRoom(RegionType.Set_Passable);
             if (room == null)
-            {
-                Log.Warning("HeatPump: room is null");
                 return;
-            }
 
             float roomTemp = room.Temperature;
             float targetTemp = GetTargetTemperature();
@@ -175,27 +130,12 @@ namespace DubsHeatPumps
             // Check if outdoor temperature allows heating
             bool canHeat = outdoorTemp >= MIN_HEATING_OUTDOOR_TEMP;
 
-            // Log every 5 seconds for debugging
-            if (Find.TickManager.TicksGame % 300 == 0)
-            {
-                Log.Message($"HeatPump Debug - Room: {roomTemp:F1}°C, Target: {targetTemp:F1}°C, Outdoor: {outdoorTemp:F1}°C, " +
-                    $"Mode: {(isHeating ? "Heat" : "Cool")}, ManualOverride: {manualModeOverride}, CanHeat: {canHeat}, PowerOn: {(powerComp?.PowerOn ?? false)}");
-            }
-
             // Only auto-switch if not in manual override mode
             if (!manualModeOverride)
             {
-                // Determine if we should be heating or cooling based on INDOOR temperature
+                // Determine if we should be heating or cooling based on room temperature
                 bool shouldHeat = roomTemp < (targetTemp - MODE_THRESHOLD);
                 bool shouldCool = roomTemp > (targetTemp + MODE_THRESHOLD);
-
-                // Debug log decision making every 5 seconds
-                if (Find.TickManager.TicksGame % 300 == 0)
-                {
-                    Log.Message($"HeatPump Auto-Switch Check: shouldHeat={shouldHeat} (room {roomTemp:F1}°C < {(targetTemp - MODE_THRESHOLD):F1}°C), " +
-                        $"shouldCool={shouldCool} (room {roomTemp:F1}°C > {(targetTemp + MODE_THRESHOLD):F1}°C), " +
-                        $"inDeadZone={!shouldHeat && !shouldCool}, currentMode={(isHeating ? "Heat" : "Cool")}");
-                }
 
                 // Switch modes based on need
                 if (shouldHeat && canHeat)
@@ -215,14 +155,6 @@ namespace DubsHeatPumps
                     }
                 }
                 // If in dead zone (within threshold), maintain current mode
-            }
-            else
-            {
-                // Log when in manual override to remind user
-                if (Find.TickManager.TicksGame % 300 == 0)
-                {
-                    Log.Warning($"HeatPump in MANUAL OVERRIDE mode - auto-switching disabled");
-                }
             }
 
             // Disable heating if outdoor temp too low (override manual mode if necessary)
@@ -283,17 +215,12 @@ namespace DubsHeatPumps
         private float GetDBHEfficiency()
         {
             if (airconComp == null)
-            {
-                if (Find.TickManager.TicksGame % 300 == 0)
-                {
-                    Log.Warning("GetDBHEfficiency: airconComp is NULL");
-                }
                 return 1f;
-            }
 
             try
             {
                 // Try to get efficiency from DBH's aircon component using reflection
+                // CompRoomUnit might use a different property name or method
                 var efficiencyProp = airconComp.GetType().GetProperty("Efficiency",
                     System.Reflection.BindingFlags.Instance |
                     System.Reflection.BindingFlags.NonPublic |
@@ -303,38 +230,28 @@ namespace DubsHeatPumps
                 {
                     var value = efficiencyProp.GetValue(airconComp);
                     if (value is float efficiency)
-                    {
-                        if (Find.TickManager.TicksGame % 300 == 0)
-                        {
-                            Log.Message($"GetDBHEfficiency: Found efficiency = {efficiency:F2} ({(efficiency * 100f):F0}%)");
-                        }
                         return efficiency;
-                    }
-                    else
-                    {
-                        if (Find.TickManager.TicksGame % 300 == 0)
-                        {
-                            Log.Warning($"GetDBHEfficiency: Efficiency property exists but value is not float (type: {value?.GetType().Name ?? "null"})");
-                        }
-                    }
                 }
-                else
+
+                // Try alternative property names
+                var efficiencyField = airconComp.GetType().GetField("efficiency",
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public);
+
+                if (efficiencyField != null)
                 {
-                    if (Find.TickManager.TicksGame % 300 == 0)
-                    {
-                        Log.Warning("GetDBHEfficiency: Efficiency property not found on airconComp");
-                    }
+                    var value = efficiencyField.GetValue(airconComp);
+                    if (value is float efficiency)
+                        return efficiency;
                 }
             }
-            catch (System.Exception ex)
+            catch
             {
-                if (Find.TickManager.TicksGame % 300 == 0)
-                {
-                    Log.Error($"GetDBHEfficiency: Exception - {ex.Message}");
-                }
+                // Reflection failed, return default
             }
 
-            return 1f;
+            return 1f; // Default 100% efficiency if can't find the value
         }
 
         public float CurrentEfficiency => GetDBHEfficiency();
@@ -388,31 +305,12 @@ namespace DubsHeatPumps
         {
             base.PostDraw();
 
-            // Debug: Log that PostDraw is being called (every 5 seconds)
-            if (Find.TickManager.TicksGame % 300 == 0)
-            {
-                Log.Message($"HeatPump PostDraw called for {parent.Label} at {parent.DrawPos}");
-            }
-
             // Draw vertical capacity bar matching DBH style
             // Shows efficiency: available outdoor capacity / indoor capacity requested
             GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
             r.center = parent.DrawPos + Vector3.up * 0.1f;
-
-            // Vertical bar dimensions (swap width/height from horizontal)
             r.size = new Vector2(0.08f, 0.55f);
-
-            // Use actual efficiency from DBH capacity system
-            float efficiency = GetDBHEfficiency();
-            r.fillPercent = efficiency;
-
-            // Debug: Log bar parameters (every 5 seconds)
-            if (Find.TickManager.TicksGame % 300 == 0)
-            {
-                Log.Message($"HeatPump Drawing bar: center={r.center}, size={r.size}, fillPercent={r.fillPercent:F2} ({(r.fillPercent * 100f):F0}%)");
-            }
-
-            // Cyan color matching DBH style
+            r.fillPercent = GetDBHEfficiency();
             r.filledMat = CapacityFilled;
             r.unfilledMat = CapacityUnfilled;
             r.margin = 0.15f;
@@ -482,7 +380,6 @@ namespace DubsHeatPumps
                     action = delegate
                     {
                         manualModeOverride = false;
-                        Log.Message($"HeatPump: AUTO MODE ENABLED - manual override disabled");
                     }
                 };
                 yield return autoModeBtn;
