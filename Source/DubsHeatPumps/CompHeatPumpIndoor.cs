@@ -243,7 +243,13 @@ namespace DubsHeatPumps
         private float GetDBHEfficiency()
         {
             if (airconComp == null)
+            {
+                if (Find.TickManager.TicksGame % 300 == 0)
+                {
+                    Log.Warning("GetDBHEfficiency: airconComp is NULL");
+                }
                 return 1f;
+            }
 
             try
             {
@@ -257,12 +263,35 @@ namespace DubsHeatPumps
                 {
                     var value = efficiencyProp.GetValue(airconComp);
                     if (value is float efficiency)
+                    {
+                        if (Find.TickManager.TicksGame % 300 == 0)
+                        {
+                            Log.Message($"GetDBHEfficiency: Found efficiency = {efficiency:F2} ({(efficiency * 100f):F0}%)");
+                        }
                         return efficiency;
+                    }
+                    else
+                    {
+                        if (Find.TickManager.TicksGame % 300 == 0)
+                        {
+                            Log.Warning($"GetDBHEfficiency: Efficiency property exists but value is not float (type: {value?.GetType().Name ?? "null"})");
+                        }
+                    }
+                }
+                else
+                {
+                    if (Find.TickManager.TicksGame % 300 == 0)
+                    {
+                        Log.Warning("GetDBHEfficiency: Efficiency property not found on airconComp");
+                    }
                 }
             }
-            catch
+            catch (System.Exception ex)
             {
-                // If reflection fails, return 1
+                if (Find.TickManager.TicksGame % 300 == 0)
+                {
+                    Log.Error($"GetDBHEfficiency: Exception - {ex.Message}");
+                }
             }
 
             return 1f;
@@ -319,6 +348,12 @@ namespace DubsHeatPumps
         {
             base.PostDraw();
 
+            // Debug: Log that PostDraw is being called (every 5 seconds)
+            if (Find.TickManager.TicksGame % 300 == 0)
+            {
+                Log.Message($"HeatPump PostDraw called for {parent.Label} at {parent.DrawPos}");
+            }
+
             // Draw vertical capacity bar matching DBH style
             // Shows efficiency: available outdoor capacity / indoor capacity requested
             GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
@@ -328,7 +363,14 @@ namespace DubsHeatPumps
             r.size = new Vector2(0.08f, 0.55f);
 
             // Use actual efficiency from DBH capacity system
-            r.fillPercent = GetDBHEfficiency();
+            float efficiency = GetDBHEfficiency();
+            r.fillPercent = efficiency;
+
+            // Debug: Log bar parameters (every 5 seconds)
+            if (Find.TickManager.TicksGame % 300 == 0)
+            {
+                Log.Message($"HeatPump Drawing bar: center={r.center}, size={r.size}, fillPercent={r.fillPercent:F2} ({(r.fillPercent * 100f):F0}%)");
+            }
 
             // Cyan color matching DBH style
             r.filledMat = CapacityFilled;
