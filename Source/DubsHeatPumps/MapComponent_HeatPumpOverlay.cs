@@ -19,30 +19,52 @@ namespace DubsHeatPumps
         {
         }
 
+        private int debugTicks = 0;
+
         public override void MapComponentOnGUI()
         {
             base.MapComponentOnGUI();
+
+            // Debug: Log once per second
+            debugTicks++;
+            if (debugTicks % 60 == 0)
+            {
+                Log.Message($"[HeatPump] MapComponentOnGUI CALLED, currentMap={map == Find.CurrentMap}");
+            }
 
             if (map != Find.CurrentMap)
                 return;
 
             // Find all heat pump indoor units on the map
             List<Thing> allThings = map.listerThings.AllThings;
+            int heatPumpCount = 0;
+
             for (int i = 0; i < allThings.Count; i++)
             {
                 Thing thing = allThings[i];
                 if (thing.def.defName != "HeatPumpIndoorUnit")
                     continue;
 
+                heatPumpCount++;
+
                 CompHeatPumpIndoor heatPump = thing.TryGetComp<CompHeatPumpIndoor>();
                 if (heatPump == null)
+                {
+                    if (debugTicks % 60 == 0)
+                        Log.Warning($"[HeatPump] Found HeatPumpIndoorUnit but CompHeatPumpIndoor is NULL!");
                     continue;
+                }
 
                 if (!thing.Spawned)
                     continue;
 
                 // Get capacity ratio from DBH
                 float capacityRatio = heatPump.GetDBHCapacityRatio();
+
+                if (debugTicks % 60 == 0)
+                {
+                    Log.Message($"[HeatPump] Drawing bar for {thing.Label}: ratio={capacityRatio:F2}, pos={thing.DrawPos}");
+                }
 
                 // Draw vertical capacity bar
                 GenDraw.FillableBarRequest r = default(GenDraw.FillableBarRequest);
@@ -55,6 +77,11 @@ namespace DubsHeatPumps
                 r.rotation = Rot4.North;
 
                 GenDraw.DrawFillableBar(r);
+            }
+
+            if (debugTicks % 60 == 0 && heatPumpCount > 0)
+            {
+                Log.Message($"[HeatPump] Found {heatPumpCount} heat pump units on map");
             }
         }
     }
