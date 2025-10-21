@@ -280,40 +280,10 @@ namespace DubsHeatPumps
 
         public override string CompInspectStringExtra()
         {
-            string result = "";
-
-            // Current mode
+            // Match DBH's minimal style - just show mode
+            // DBH handles showing capacity/power/etc through its own comps
             string mode = isHeating ? "Heating" : "Cooling";
-            result += $"Mode: {mode}\n";
-
-            // Capacity from DBH system (shows available capacity from outdoor unit)
-            float capacityRatio = GetDBHCapacityRatio();
-            result += $"Available capacity: {(capacityRatio * 100f).ToString("F0")}%\n";
-
-            // Room and target temperatures
-            Room room = parent.GetRoom(RegionType.Set_Passable);
-            if (room != null && thermostatComp != null)
-            {
-                float roomTemp = room.Temperature;
-                float targetTemp = GetTargetTemperature();
-                result += $"Room: {roomTemp.ToStringTemperature()} / Target: {targetTemp.ToStringTemperature()}\n";
-            }
-
-            // Outdoor temperature
-            if (parent?.Map != null)
-            {
-                float outdoorTemp = parent.Map.mapTemperature.OutdoorTemp;
-                result += $"Outdoor: {outdoorTemp.ToStringTemperature()}";
-
-                // Show warning if cannot heat
-                if (room != null && thermostatComp != null &&
-                    room.Temperature < (GetTargetTemperature() - MODE_THRESHOLD) && !CanHeat)
-                {
-                    result += $"\nHeating unavailable below {MIN_HEATING_OUTDOOR_TEMP.ToStringTemperature()} outdoor";
-                }
-            }
-
-            return result;
+            return $"Mode: {mode}";
         }
 
 
