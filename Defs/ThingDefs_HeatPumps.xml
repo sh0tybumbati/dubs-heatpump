@@ -7,7 +7,6 @@
 		<label>heat pump outdoor unit</label>
 		<description>Reversible outdoor unit that can both heat and cool. More efficient than separate heating and cooling systems. Must be placed outdoors and connected to heat pump indoor units via Air ducts. Efficiency affected by ambient temperature.</description>
 		<designatorDropdown>HeatPump</designatorDropdown>
-		<tickerType>Normal</tickerType>
 		<graphicData>
 			<texPath>DBH/Things/Building/Heating/Aircon</texPath>
 			<graphicClass>Graphic_Single</graphicClass>
@@ -41,9 +40,6 @@
 			</li>
 			<li Class="CompProperties_Flickable"/>
 			<li Class="CompProperties_Breakdownable"/>
-			<li>
-				<compClass>DubsHeatPumps.CompHeatPumpOutdoor</compClass>
-			</li>
 		</comps>
 		<researchPrerequisites>
 			<li>HeatPumps</li>
