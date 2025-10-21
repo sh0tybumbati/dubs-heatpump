@@ -208,53 +208,9 @@ namespace DubsHeatPumps
             }
         }
 
-        /// <summary>
-        /// Calculate heat pump efficiency based on outdoor temperature
-        /// Heat pumps are most efficient at moderate temps, less efficient at extremes
-        /// </summary>
-        private float CalculateEfficiency()
-        {
-            if (parent?.Map == null)
-                return 1f;
-
-            float outdoorTemp = parent.Map.mapTemperature.OutdoorTemp;
-
-            if (isHeating)
-            {
-                // HEATING MODE: Efficiency decreases as outdoor temp drops
-                // 100% at 15°C or above
-                // 50% at -25°C (minimum heating temp)
-                // Formula: 50% + (temp + 25) / 40 * 50%
-                if (outdoorTemp >= 15f)
-                    return 1f; // 100% efficiency in warm weather
-
-                if (outdoorTemp <= MIN_HEATING_OUTDOOR_TEMP)
-                    return 0.5f; // 50% efficiency at coldest operating temp
-
-                // Linear interpolation between -25°C (50%) and 15°C (100%)
-                float range = 15f - MIN_HEATING_OUTDOOR_TEMP; // 40 degrees
-                float position = outdoorTemp - MIN_HEATING_OUTDOOR_TEMP; // 0 to 40
-                return 0.5f + (position / range) * 0.5f;
-            }
-            else
-            {
-                // COOLING MODE: Efficiency decreases as outdoor temp rises
-                // 100% at 21°C or below
-                // 50% at 50°C (extreme heat)
-                if (outdoorTemp <= 21f)
-                    return 1f; // 100% efficiency in moderate weather
-
-                if (outdoorTemp >= 50f)
-                    return 0.5f; // 50% efficiency in extreme heat
-
-                // Linear interpolation between 21°C (100%) and 50°C (50%)
-                float range = 50f - 21f; // 29 degrees
-                float position = outdoorTemp - 21f; // 0 to 29
-                return 1f - (position / range) * 0.5f;
-            }
-        }
-
-        public float CurrentEfficiency => CalculateEfficiency();
+        // Efficiency is handled by DBH's capacity system (outdoor unit temp affects available capacity)
+        // Don't calculate efficiency here - just display what DBH provides
+        public float CurrentEfficiency => GetDBHCapacityRatio();
 
         /// <summary>
         /// Get capacity ratio from DBH's aircon component
@@ -330,33 +286,9 @@ namespace DubsHeatPumps
             string mode = isHeating ? "Heating" : "Cooling";
             result += $"Mode: {mode}\n";
 
-            // Efficiency (based on outdoor temperature)
-            float efficiency = CalculateEfficiency();
-            string efficiencyStatus = "";
-
-            if (parent?.Map != null)
-            {
-                float outdoorTemp = parent.Map.mapTemperature.OutdoorTemp;
-
-                if (isHeating)
-                {
-                    if (outdoorTemp < 0f)
-                        efficiencyStatus = " (cold weather)";
-                    else if (outdoorTemp < 10f)
-                        efficiencyStatus = " (cool)";
-                }
-                else
-                {
-                    if (outdoorTemp > 40f)
-                        efficiencyStatus = " (overheating)";
-                    else if (outdoorTemp > 30f)
-                        efficiencyStatus = " (hot weather)";
-                    else if (outdoorTemp > 21f)
-                        efficiencyStatus = " (warm)";
-                }
-            }
-
-            result += $"Efficiency: {(efficiency * 100f).ToString("F1")}%{efficiencyStatus}\n";
+            // Capacity from DBH system (shows available capacity from outdoor unit)
+            float capacityRatio = GetDBHCapacityRatio();
+            result += $"Available capacity: {(capacityRatio * 100f).ToString("F0")}%\n";
 
             // Room and target temperatures
             Room room = parent.GetRoom(RegionType.Set_Passable);
