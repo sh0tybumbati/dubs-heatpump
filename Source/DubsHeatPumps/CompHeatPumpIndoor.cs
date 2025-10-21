@@ -239,22 +239,81 @@ namespace DubsHeatPumps
             else
             {
                 // COOLING MODE: Efficiency decreases as outdoor temp rises
-                // 100% at 25°C or below
+                // 100% at 21°C or below
                 // 50% at 50°C (extreme heat)
-                if (outdoorTemp <= 25f)
+                if (outdoorTemp <= 21f)
                     return 1f; // 100% efficiency in moderate weather
 
                 if (outdoorTemp >= 50f)
                     return 0.5f; // 50% efficiency in extreme heat
 
-                // Linear interpolation between 25°C (100%) and 50°C (50%)
-                float range = 50f - 25f; // 25 degrees
-                float position = outdoorTemp - 25f; // 0 to 25
+                // Linear interpolation between 21°C (100%) and 50°C (50%)
+                float range = 50f - 21f; // 29 degrees
+                float position = outdoorTemp - 21f; // 0 to 29
                 return 1f - (position / range) * 0.5f;
             }
         }
 
         public float CurrentEfficiency => CalculateEfficiency();
+
+        /// <summary>
+        /// Get capacity ratio from DBH's aircon component
+        /// This shows how much of the outdoor unit's available capacity this indoor unit is getting
+        /// </summary>
+        public float GetDBHCapacityRatio()
+        {
+            if (airconComp == null)
+                return 1f;
+
+            try
+            {
+                // Try to get the capacity ratio from DBH
+                // This should be: available outdoor capacity / requested indoor capacity
+                var capacityProp = airconComp.GetType().GetProperty("CapacityRatio",
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public);
+
+                if (capacityProp != null)
+                {
+                    var value = capacityProp.GetValue(airconComp);
+                    if (value is float ratio)
+                        return ratio;
+                }
+
+                // Alternative: try field instead of property
+                var capacityField = airconComp.GetType().GetField("capacityRatio",
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public);
+
+                if (capacityField != null)
+                {
+                    var value = capacityField.GetValue(airconComp);
+                    if (value is float ratio)
+                        return ratio;
+                }
+
+                // Try getting it from a method
+                var getCapacityMethod = airconComp.GetType().GetMethod("GetCapacityRatio",
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public);
+
+                if (getCapacityMethod != null)
+                {
+                    var value = getCapacityMethod.Invoke(airconComp, null);
+                    if (value is float ratio)
+                        return ratio;
+                }
+            }
+            catch
+            {
+                // Reflection failed
+            }
+
+            return 1f; // Default 100% if can't find the value
+        }
 
         public override void PostExposeData()
         {
@@ -292,6 +351,8 @@ namespace DubsHeatPumps
                         efficiencyStatus = " (overheating)";
                     else if (outdoorTemp > 30f)
                         efficiencyStatus = " (hot weather)";
+                    else if (outdoorTemp > 21f)
+                        efficiencyStatus = " (warm)";
                 }
             }
 

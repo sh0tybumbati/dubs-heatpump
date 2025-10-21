@@ -42,14 +42,10 @@
       <HintPath>..\..\lib\DubsBadHygiene.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="0Harmony">
-      <HintPath>..\..\lib\0Harmony.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CompHeatPumpIndoor.cs" />
-    <Compile Include="HarmonyPatches.cs" />
+    <Compile Include="Building_HeatPumpIndoor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
