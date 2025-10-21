@@ -52,7 +52,6 @@
 		<defName>HeatPumpIndoorUnit</defName>
 		<label>heat pump indoor unit</label>
 		<description>Indoor unit that automatically switches between heating and cooling based on target temperature. Requires connection to heat pump outdoor unit via Air ducts. Requires 120 capacity units from outdoor unit. Heating disabled when outdoor temperature below -25°C (-13°F).</description>
-		<thingClass>DubsHeatPumps.Building_HeatPumpIndoor</thingClass>
 		<designatorDropdown>HeatPump</designatorDropdown>
 		<passability>Standable</passability>
 		<blockWind>false</blockWind>

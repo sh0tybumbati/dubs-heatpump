@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+	<!-- Register MapComponent for drawing capacity bars -->
+	<MapComponentDef>
+		<defName>HeatPumpOverlay</defName>
+		<mapComponentClass>DubsHeatPumps.MapComponent_HeatPumpOverlay</mapComponentClass>
+	</MapComponentDef>
+
+</Defs>
